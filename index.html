@@ -105,6 +105,113 @@
     letter-spacing:-0.01em;
   }
 
+  .progress-wrap{
+    margin-top: clamp(36px, 6vw, 56px);
+    width: min(420px, 78vw);
+  }
+
+  .progress-track{
+    width:100%;
+    height:6px;
+    border-radius:999px;
+    background: color-mix(in srgb, var(--fg) 15%, transparent);
+    overflow:hidden;
+  }
+
+  .progress-fill{
+    height:100%;
+    width:0%;
+    background:var(--fg);
+    border-radius:999px;
+    transition: width .5s ease;
+  }
+
+  .progress-row{
+    margin-top:14px;
+    display:flex;
+    align-items:baseline;
+    justify-content:center;
+    gap:8px;
+    font-size: clamp(12px, 1.6vw, 14px);
+    letter-spacing:0.04em;
+    color:var(--dim);
+  }
+
+  .amount-input{
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--fg);
+    font-family:inherit;
+    font-size: clamp(12px, 1.6vw, 14px);
+    letter-spacing:0.04em;
+    width: 5.5em;
+    text-align:right;
+    padding:0;
+  }
+
+  .amount-input::placeholder{
+    color:var(--dim);
+  }
+
+  .progress-pct{
+    color:var(--fg);
+    margin-left:6px;
+  }
+
+  .add-row{
+    margin-top:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+  }
+
+  .add-input{
+    background:transparent;
+    border:1px solid color-mix(in srgb, var(--fg) 25%, transparent);
+    border-radius:8px;
+    outline:none;
+    color:var(--fg);
+    font-family:inherit;
+    font-size: clamp(12px, 1.6vw, 14px);
+    letter-spacing:0.02em;
+    width: 9em;
+    text-align:center;
+    padding:9px 10px;
+    transition: border-color .2s ease;
+  }
+
+  .add-input:focus{
+    border-color: var(--fg);
+  }
+
+  .add-input::placeholder{
+    color:var(--dim);
+  }
+
+  .add-btn{
+    width:34px;
+    height:34px;
+    border-radius:8px;
+    border:1px solid color-mix(in srgb, var(--fg) 25%, transparent);
+    background:transparent;
+    color:var(--fg);
+    font-family:inherit;
+    font-size:18px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: background .2s ease, border-color .2s ease;
+  }
+
+  .add-btn:hover{
+    border-color: var(--fg);
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+  }
+
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; }
   }
@@ -118,6 +225,22 @@
 
 <div class="wrap">
   <div id="display" class="countdown"></div>
+
+  <div class="progress-wrap">
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="progress-row">
+      <input type="text" id="amountInput" class="amount-input" inputmode="numeric" placeholder="0" />
+      <span class="progress-sep">/ ₹1,00,000</span>
+      <span class="progress-pct" id="progressPct">0%</span>
+    </div>
+
+    <div class="add-row">
+      <input type="text" id="addInput" class="add-input" inputmode="numeric" placeholder="Add amount" />
+      <button id="addBtn" class="add-btn" aria-label="Add to progress">+</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -164,6 +287,83 @@
 
     render();
     setInterval(render, 1000);
+
+    // Money progress bar
+    var TARGET = 100000;
+    var AMOUNT_KEY = 'countdown_amount';
+    var amountInput = document.getElementById('amountInput');
+    var progressFill = document.getElementById('progressFill');
+    var progressPct = document.getElementById('progressPct');
+
+    function formatIN(n){
+      return n.toLocaleString('en-IN');
+    }
+
+    function updateProgress(){
+      var raw = localStorage.getItem(AMOUNT_KEY);
+      var amount = raw ? parseFloat(raw) : 0;
+      if (isNaN(amount) || amount < 0) amount = 0;
+
+      var pct = Math.min(100, (amount / TARGET) * 100);
+      progressFill.style.width = pct + '%';
+      progressPct.textContent = Math.round(pct) + '%';
+
+      if (document.activeElement !== amountInput){
+        amountInput.value = amount ? formatIN(amount) : '';
+      }
+    }
+
+    amountInput.addEventListener('focus', function(){
+      var raw = localStorage.getItem(AMOUNT_KEY);
+      amountInput.value = raw && raw !== '0' ? raw : '';
+    });
+
+    amountInput.addEventListener('input', function(){
+      var digits = amountInput.value.replace(/[^0-9]/g, '');
+      amountInput.value = digits;
+    });
+
+    amountInput.addEventListener('blur', function(){
+      var digits = amountInput.value.replace(/[^0-9]/g, '');
+      var amount = digits ? parseInt(digits, 10) : 0;
+      localStorage.setItem(AMOUNT_KEY, amount);
+      updateProgress();
+    });
+
+    amountInput.addEventListener('keydown', function(e){
+      if (e.key === 'Enter'){
+        amountInput.blur();
+      }
+    });
+
+    // Add-to-progress control
+    var addInput = document.getElementById('addInput');
+    var addBtn = document.getElementById('addBtn');
+
+    function commitAdd(){
+      var digits = addInput.value.replace(/[^0-9]/g, '');
+      var toAdd = digits ? parseInt(digits, 10) : 0;
+      if (toAdd > 0){
+        var current = parseInt(localStorage.getItem(AMOUNT_KEY) || '0', 10);
+        localStorage.setItem(AMOUNT_KEY, current + toAdd);
+        updateProgress();
+      }
+      addInput.value = '';
+    }
+
+    addInput.addEventListener('input', function(){
+      addInput.value = addInput.value.replace(/[^0-9]/g, '');
+    });
+
+    addInput.addEventListener('keydown', function(e){
+      if (e.key === 'Enter'){
+        commitAdd();
+      }
+    });
+
+    addBtn.addEventListener('click', commitAdd);
+
+    updateProgress();
 
     // Theme toggle
     var themeToggle = document.getElementById('themeToggle');
