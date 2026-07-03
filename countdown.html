@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>100 Days</title>
+<style>
+  :root{
+    --bg: #000000;
+    --fg: #ffffff;
+    --dim: #6a6a6a;
+    --accent: #ffffff;
+  }
+  [data-theme="light"]{
+    --bg: #ffffff;
+    --fg: #000000;
+    --dim: #8a8a8a;
+    --accent: #000000;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  html, body{
+    height:100%;
+    background:var(--bg);
+    color:var(--fg);
+    transition: background .35s ease, color .35s ease;
+  }
+
+  body{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family: 'SF Mono', 'Roboto Mono', 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    overflow:hidden;
+  }
+
+  .toggle{
+    position:fixed;
+    top:28px;
+    right:28px;
+    width:52px;
+    height:28px;
+    border-radius:999px;
+    border:1px solid var(--fg);
+    background:transparent;
+    cursor:pointer;
+    padding:3px;
+    display:flex;
+    align-items:center;
+    transition: border-color .35s ease;
+  }
+  .toggle .knob{
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:var(--fg);
+    transition: transform .35s ease, background .35s ease;
+  }
+  [data-theme="light"] .toggle .knob{ transform: translateX(24px); }
+
+  .wrap{
+    text-align:center;
+    user-select:none;
+  }
+
+  .countdown{
+    display:flex;
+    align-items:baseline;
+    justify-content:center;
+    gap: clamp(10px, 2.5vw, 22px);
+  }
+
+  .segment{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .value{
+    font-size: clamp(48px, 12vw, 118px);
+    font-weight:600;
+    letter-spacing:-0.02em;
+    line-height:1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .label{
+    margin-top:10px;
+    font-size: clamp(10px, 1.4vw, 13px);
+    letter-spacing:0.28em;
+    text-transform:uppercase;
+    color:var(--dim);
+  }
+
+  .colon{
+    font-size: clamp(36px, 9vw, 90px);
+    color:var(--dim);
+    padding-bottom: clamp(2px, 1vw, 10px);
+  }
+
+  .done{
+    font-size: clamp(28px, 6vw, 56px);
+    font-weight:600;
+    letter-spacing:-0.01em;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<button class="toggle" id="themeToggle" aria-label="Toggle light and dark mode">
+  <div class="knob"></div>
+</button>
+
+<div class="wrap">
+  <div id="display" class="countdown"></div>
+</div>
+
+<script>
+  (function(){
+    var STORAGE_KEY = 'countdown_end_ts';
+    var THEME_KEY = 'countdown_theme';
+    var DURATION_MS = 100 * 24 * 60 * 60 * 1000; // 100 days
+
+    // Set start time on very first open, persisted forever after.
+    var endTs = localStorage.getItem(STORAGE_KEY);
+    if (!endTs) {
+      endTs = Date.now() + DURATION_MS;
+      localStorage.setItem(STORAGE_KEY, endTs);
+    } else {
+      endTs = parseInt(endTs, 10);
+    }
+
+    var display = document.getElementById('display');
+
+    function pad(n){
+      return n < 10 ? '0' + n : '' + n;
+    }
+
+    function render(){
+      var remaining = endTs - Date.now();
+
+      if (remaining <= 0){
+        display.innerHTML = '<div class="done">00 : 00 : 00</div>';
+        return;
+      }
+
+      var totalSeconds = Math.floor(remaining / 1000);
+      var days = Math.floor(totalSeconds / 86400);
+      var hours = Math.floor((totalSeconds % 86400) / 3600);
+      var minutes = Math.floor((totalSeconds % 3600) / 60);
+
+      display.innerHTML =
+        '<div class="segment"><div class="value">' + days + '</div><div class="label">Days</div></div>' +
+        '<div class="colon">:</div>' +
+        '<div class="segment"><div class="value">' + pad(hours) + '</div><div class="label">Hrs</div></div>' +
+        '<div class="colon">:</div>' +
+        '<div class="segment"><div class="value">' + pad(minutes) + '</div><div class="label">Mins</div></div>';
+    }
+
+    render();
+    setInterval(render, 1000);
+
+    // Theme toggle
+    var themeToggle = document.getElementById('themeToggle');
+    var savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+    if (savedTheme === 'light'){
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+
+    themeToggle.addEventListener('click', function(){
+      var current = document.documentElement.getAttribute('data-theme');
+      if (current === 'light'){
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem(THEME_KEY, 'dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem(THEME_KEY, 'light');
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>
